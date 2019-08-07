@@ -1,0 +1,17 @@
+pull_request_rules:
+  - name: Merge to staging
+    conditions:
+      - base=staging
+      - label=merge-to-staging
+    actions:
+      merge:
+        method: merge
+        strict: smart
+  - name: Merge to master
+    conditions:
+      - base=master
+      - label=merge-to-master
+    actions:
+      merge:
+        method: merge
+        strict: smart

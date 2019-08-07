@@ -1,0 +1,62 @@
+version: 2.1
+
+jobs:
+  job_feature:
+    machine:
+      image: circleci/classic:201708-01
+    steps:
+      - checkout
+
+  job_deploy_to_staging:
+    machine:
+      image: circleci/classic:201708-01
+    steps:
+      - checkout
+      - run:
+          name: install hub
+          command: |
+            wget https://github.com/github/hub/releases/download/v2.12.3/hub-linux-amd64-2.12.3.tgz
+            tar -xf hub-linux-amd64-2.12.3.tgz
+            cp hub-linux-amd64-2.12.3/bin/hub .
+            ./hub --version
+      - run:
+          name: create PR
+          command: |
+            if [[ -z "${CI_PULL_REQUEST}" ]]; then
+              GITHUB_TOKEN=$GITHUB_TOKEN ./hub api -X POST /repos/$ORG_NAME/$CIRCLE_PROJECT_REPONAME/pulls  --field title=staging_to_prod_`date -u +"%Y-%m-%dT%H:%M:%SZ"` --field head=staging --field base=master
+            else
+              echo "This is a PR on staging do nothing"
+            fi
+  job_deploy_to_production:
+    machine:
+      image: circleci/classic:201708-01
+    steps:
+      - checkout
+
+
+filter_staging: &filter_staging
+  branches:
+    only:
+      - staging
+
+filter_production: &filter_production
+  branches:
+    only:
+      - master
+
+filter: &filter
+  branches:
+    ignore:
+      - staging
+      - master
+
+workflows:
+  version: 2
+  deploy_codebase:
+    jobs:
+      - job_feature:
+          filters: *filter
+      - job_deploy_to_staging:
+          filters: *filter_staging
+      - job_deploy_to_production:
+          filters: *filter_production
